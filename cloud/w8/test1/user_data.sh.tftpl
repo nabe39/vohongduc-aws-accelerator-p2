@@ -1,0 +1,98 @@
+#!/bin/bash
+set -euxo pipefail
+
+exec > >(tee /var/log/user-data.log | logger -t user-data -s 2>/dev/console) 2>&1
+
+echo "===== Start preinstalled SSM Agent if available ====="
+if systemctl list-unit-files amazon-ssm-agent.service >/dev/null 2>&1; then
+  systemctl enable --now amazon-ssm-agent
+fi
+
+echo "===== Install packages ====="
+dnf update -y
+dnf install -y amazon-ssm-agent docker git
+
+if ! command -v curl >/dev/null 2>&1; then
+  dnf install -y curl-minimal
+fi
+
+echo "===== Start SSM Agent ====="
+systemctl enable --now amazon-ssm-agent
+systemctl restart amazon-ssm-agent
+
+echo "===== Start Docker ====="
+systemctl enable --now docker
+usermod -aG docker ec2-user
+
+echo "===== Install kind ====="
+curl -Lo /usr/local/bin/kind https://kind.sigs.k8s.io/dl/v0.23.0/kind-linux-amd64
+chmod +x /usr/local/bin/kind
+
+echo "===== Install kubectl ====="
+curl -Lo /usr/local/bin/kubectl https://dl.k8s.io/release/v1.30.0/bin/linux/amd64/kubectl
+chmod +x /usr/local/bin/kubectl
+
+export HOME=/root
+export KUBECONFIG=/root/.kube/config
+mkdir -p /root/.kube
+
+echo "===== Create kind config ====="
+cat > /tmp/kind-config.yaml <<EOF
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+- role: control-plane
+  extraPortMappings:
+  - containerPort: ${app_port}
+    hostPort: ${app_port}
+    listenAddress: "0.0.0.0"
+    protocol: TCP
+EOF
+
+echo "===== Create kind cluster ====="
+if ! kind get clusters | grep -qx lab; then
+  kind create cluster --name lab --config /tmp/kind-config.yaml
+fi
+
+kind export kubeconfig --name lab --kubeconfig "$KUBECONFIG"
+kubectl --kubeconfig "$KUBECONFIG" cluster-info --request-timeout=60s
+
+echo "===== Create game store project files ====="
+mkdir -p /opt/game-store/app /opt/game-store/k8s
+
+cat > /opt/game-store/app/index.html <<'EOF_APP_INDEX'
+${app_index_html}
+EOF_APP_INDEX
+
+cat > /opt/game-store/app/Dockerfile <<'EOF_APP_DOCKERFILE'
+${app_dockerfile}
+EOF_APP_DOCKERFILE
+
+cat > /opt/game-store/k8s/game-store.yaml <<'EOF_K8S_MANIFEST'
+${k8s_manifest}
+EOF_K8S_MANIFEST
+
+echo "===== Build game store image ====="
+docker build -t game-store:local /opt/game-store/app
+
+echo "===== Load image into kind ====="
+kind load docker-image game-store:local --name lab
+
+echo "===== Deploy app to Kubernetes ====="
+kubectl --kubeconfig "$KUBECONFIG" apply -f /opt/game-store/k8s/game-store.yaml
+kubectl --kubeconfig "$KUBECONFIG" rollout status deployment/game-store --timeout=180s
+
+echo "===== Copy kubeconfig for ec2-user ====="
+mkdir -p /home/ec2-user/.kube
+cp "$KUBECONFIG" /home/ec2-user/.kube/config
+chown -R ec2-user:ec2-user /home/ec2-user/.kube
+install -m 0644 "$KUBECONFIG" /etc/kubeconfig
+cat > /etc/profile.d/kubeconfig.sh <<'EOF'
+export KUBECONFIG=/etc/kubeconfig
+EOF
+
+echo "===== Test app locally ====="
+curl -I http://localhost:${app_port}
+
+echo "===== Done ====="
+echo "Game Store is running on NodePort ${app_port}" > /var/log/game-store-ready.log
