@@ -22,3 +22,10 @@ override.tf.json
 # Ignore CLI configuration files
 .terraformrc
 terraform.rc
+
+
+# Private SSH keys
+*.pem
+
+# Dynamic Kubernetes config files
+kubeconfig_*.yaml
