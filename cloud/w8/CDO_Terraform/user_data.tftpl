@@ -1,0 +1,48 @@
+#!/bin/bash
+set -ex
+
+# 1. Update system packages
+apt-get update -y
+apt-get upgrade -y
+
+# 2. Install Apache, PHP, MySQL drivers, unzip, and curl
+apt-get install -y apache2 php php-mysql php-curl php-json unzip curl
+
+# 3. Install AWS CLI v2 for S3 interactions
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+./aws/install
+rm -rf awscliv2.zip aws
+
+# 4. Fetch EC2 Instance Metadata using IMDSv2
+TOKEN=$(curl -s -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
+INSTANCE_ID=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/instance-id)
+AZ=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/placement/availability-zone)
+PUBLIC_IP=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/public-ipv4)
+
+# 5. Extract host/port from DB endpoint (which includes :3306)
+DB_ENDPOINT_RAW="${db_endpoint}"
+DB_HOST=$(echo $DB_ENDPOINT_RAW | cut -d':' -f1)
+
+# 6. Create configuration file config.php
+cat <<EOF > /var/www/html/config.php
+<?php
+define('DB_HOST', '$DB_HOST');
+define('DB_NAME', '${db_name}');
+define('DB_USER', '${db_username}');
+define('DB_PASS', '${db_password}');
+define('S3_BUCKET', '${s3_bucket}');
+define('AWS_REGION', '${aws_region}');
+define('INSTANCE_ID', '$INSTANCE_ID');
+define('AZ', '$AZ');
+define('PUBLIC_IP', '$PUBLIC_IP');
+?>
+EOF
+
+# 7. Copy database test verification script and dashboard from S3
+aws s3 cp s3://${s3_bucket}/index.php /var/www/html/index.php --region ${aws_region}
+
+# 8. Set ownership and restart Apache
+chown -R www-data:www-data /var/www/html
+systemctl restart apache2
+systemctl enable apache2

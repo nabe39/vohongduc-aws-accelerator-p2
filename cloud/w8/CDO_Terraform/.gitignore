@@ -1,0 +1,61 @@
+# ==========================================
+# Terraform files
+# ==========================================
+
+# Local .terraform directories (contains provider plugins and modules)
+**/.terraform/*
+
+# Local state files (contains state details, secrets, passwords)
+*.tfstate
+*.tfstate.backup
+*.tfstate.lock.info
+**/*.tfstate
+**/*.tfstate.backup
+**/*.tfstate.lock.info
+
+# Variables files (might contain sensitive credentials and custom secrets)
+*.tfvars
+*.tfvars.json
+**/*.tfvars
+**/*.tfvars.json
+
+# Override files (local developer overrides)
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Crash log files
+crash.log
+crash.*.log
+
+# CLI configuration files
+.terraformrc
+terraform.rc
+
+# ==========================================
+# Private Credentials & Secret Keys
+# ==========================================
+
+# SSH Private Keys (e.g. web-key.pem)
+*.pem
+
+# ==========================================
+# Operating System & IDE files
+# ==========================================
+
+# OS generated files
+.DS_Store
+.DS_Store?
+ehthumbs.db
+Icon?
+Thumbs.db
+
+# IDE / Editor configuration directories
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
