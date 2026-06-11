@@ -1,4 +1,5 @@
 # file: k8s-api/servicemonitor.yaml
+apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor       # Prometheus scrape /metrics
 spec:
   selector: { matchLabels: { app: api } }
