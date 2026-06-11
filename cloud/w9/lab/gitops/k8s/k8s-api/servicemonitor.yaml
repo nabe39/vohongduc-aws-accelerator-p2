@@ -1,7 +1,15 @@
-# file: k8s-api/servicemonitor.yaml
 apiVersion: monitoring.coreos.com/v1
-kind: ServiceMonitor       # Prometheus scrape /metrics
+kind: ServiceMonitor
+metadata:
+  name: api-servicemonitor
+  namespace: demo
+  labels:                           # <--- BẮT BUỘC PHẢI THÊM KHỐI NÀY
+    release: kube-prometheus-stack  # <--- Nhãn chìa khóa để thông cửa Prometheus
 spec:
-  selector: { matchLabels: { app: api } }
-  endpoints: [ { port: http, path: /metrics, interval: 15s } ]
-# file: argocd/apps/api.yaml -> Application, path: k8s-api, ns: demo
+  selector:
+    matchLabels:
+      app: web                      # <--- Phải khớp 100% với nhãn (Labels) của Service "web"
+  endpoints:
+    - port: http                    # Tên port được định nghĩa trong Service web
+      path: /metrics
+      interval: 15s
