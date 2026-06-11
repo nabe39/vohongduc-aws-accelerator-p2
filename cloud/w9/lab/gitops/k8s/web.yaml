@@ -27,10 +27,18 @@ spec:
     spec:
       containers:
       - name: web
-        image: nginx:1.27
+        image: w9-api:1               # <--- 1. ĐỔI SANG IMAGE FLASK CỦA BẠN
+        imagePullPolicy: IfNotPresent # <--- Thêm dòng này để K8s lấy image từ Minikube load vào, không lên DockerHub tìm
+        ports:
+        - name: http                  # <--- Khai báo tên cổng cho Container
+          containerPort: 8080         # <--- 2. ĐỔI THÀNH 8080 (Cổng chạy thực tế của app Flask)
         envFrom:
         - configMapRef:
             name: web-config
+        readinessProbe:               # <--- Nên thêm probe để kiểm tra sức khỏe app Flask
+          httpGet:
+            path: /healthz
+            port: 8080
 ---
 apiVersion: v1
 kind: Service
@@ -39,9 +47,12 @@ metadata:
   namespace: demo
   annotations:
     argocd.argoproj.io/sync-wave: "2"
+  labels:                             # <--- 3. THÊM BLOCK NHÃN ĐỂ SERVICEMONITOR TÌM THẤY
+    app: web
 spec:
   selector:
     app: web
   ports:
-  - port: 80
-    targetPort: 80
+  - name: http                        # <--- 4. ĐẶT TÊN CỔNG LÀ http (Bắt buộc cho ServiceMonitor)
+    port: 80                          # Giữ nguyên cổng bên ngoài là 80 để Pod load gọi vào http://web/ cho tiện
+    targetPort: 8080                  # <--- 5. ĐỔI THÀNH 8080 để đẩy traffic trúng cổng của container Flask
