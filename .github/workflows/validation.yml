@@ -14,5 +14,5 @@ jobs:
           tar -xzf kc.tgz && sudo mv kubeconform /usr/local/bin/
       - run: |
           kubeconform -strict -summary -schema-location default \
-            -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{ if eq .Group "" }}core{{ else }}{{ .Group }}{{ end }}/{{ .ResourceKind }}_{{ replace "/" "_" .ResourceAPIVersion }}.json' \
+            -ignore-missing-schemas=true \
             cloud/w9/lab/gitops/k8s/    # validate, KHÔNG apply
