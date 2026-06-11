@@ -3,8 +3,9 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata: { name: root, namespace: argocd }
 spec:
+  project: default
   source:
-    repoURL: https://github.com/<ban>/gitops.git
-    path: argocd/apps        # <- thư mục chứa các App con (đã có web.yaml)
+    repoURL: https://github.com/nabe39/vohongduc-aws-accelerator-p2.git
+    path: cloud/w9/lab/gitops/k8s/argocd/apps        # <- thư mục chứa các App con (đã có web.yaml)
   destination: { server: https://kubernetes.default.svc, namespace: argocd }
   syncPolicy: { automated: { prune: true, selfHeal: true } }
