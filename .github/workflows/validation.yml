@@ -13,6 +13,9 @@ jobs:
           curl -fsSL -o kc.tgz https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz
           tar -xzf kc.tgz && sudo mv kubeconform /usr/local/bin/
       - run: |
-          kubeconform -strict -summary -schema-location default \
-            -ignore-missing-schemas=true \
-            cloud/w9/lab/gitops/k8s/    # validate, KHÔNG apply
+          kubeconform \
+             -strict \
+             -summary \
+             -schema-location default \
+             -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json' \
+             cloud/w9/lab/gitops/k8s/
