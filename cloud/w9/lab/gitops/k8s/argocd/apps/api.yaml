@@ -1,0 +1,9 @@
+# file: argocd/apps/api.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata: { name: api, namespace: argocd }
+spec:
+  project: default
+  source: { repoURL: https://github.com/nabe39/vohongduc-aws-accelerator-p2.git, path: cloud/w9/lab/gitops/k8s/k8s-api }
+  destination: { server: https://kubernetes.default.svc, namespace: demo }
+  syncPolicy: { automated: { prune: true, selfHeal: true } }

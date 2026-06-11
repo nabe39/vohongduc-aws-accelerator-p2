@@ -8,7 +8,7 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app: web                      # <--- Phải khớp 100% với nhãn (Labels) của Service "web"
+      app: api                      # <--- Phải khớp 100% với nhãn (Labels) của Service "api"
   endpoints:
     - port: http                    # Tên port được định nghĩa trong Service web
       path: /metrics
