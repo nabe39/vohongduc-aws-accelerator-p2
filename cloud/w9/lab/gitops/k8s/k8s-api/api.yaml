@@ -14,8 +14,8 @@ spec:
         imagePullPolicy: IfNotPresent
         ports: [ { name: http, containerPort: 8080 } ]
         env:
-        - { name: ERROR_RATE, value: "0.5" }
-        - { name: VERSION,    value: "v4" }
+        - { name: ERROR_RATE, value: "1" }
+        - { name: VERSION,    value: "v5" }
         readinessProbe: { httpGet: { path: /healthz, port: 8080 } }
   strategy:
     canary:
