@@ -193,18 +193,22 @@ python apply_env.py
 ## Hướng dẫn quản lý Traffic giả lập & Kiểm tra hệ thống
 
 ### 1. Quản lý lưu lượng tải giả lập (Load Generator)
-*   **Tạo tải giả lập:** Chạy một Pod gửi request liên tục (mỗi giây một lần) vào ứng dụng `api`:
+*   **Tạo tải giả lập (Bình thường - 1 req/s):** Chạy một Pod gửi request liên tục (mỗi giây một lần) vào ứng dụng `api`:
     ```bash
     kubectl -n demo run load-test --image=busybox --restart=Never -- sh -c "while true; do wget -qO- http://api:8080/; sleep 1; done"
+    ```
+*   **Tạo tải giả lập (Spam cực mạnh - Để test SLO & Alerting):** Chạy một Pod với 20 luồng gửi request liên tiếp không có độ trễ:
+    ```bash
+    kubectl run load-test -n demo --image=busybox --restart=Never -- sh -c 'for i in $(seq 1 20); do (while true; do wget -qO- http://api:8080/ >/dev/null; done) & done; wait'
     ```
 *   **Theo dõi hoạt động của tải:** Xem logs từ Pod load-test để xác định xem traffic có được gửi thành công không:
     ```bash
     kubectl logs -n demo load-test --tail=10
     ```
-    *Kết quả đúng:* Sẽ liên tục in ra phản hồi từ API dạng `{"ok":true,"version":"v1"}`.
+    *Kết quả đúng (khi chạy chế độ Bình thường):* Sẽ liên tục in ra phản hồi từ API dạng `{"ok":true,"version":"v1"}`.
 *   **Xóa tải giả lập (Dừng gửi traffic):** 
     ```bash
-    kubectl -n demo delete pod load-test
+    kubectl -n demo delete pod load-test --force --grace-period=0
     ```
 
 ### 2. Các lệnh kiểm tra và xác minh nhanh
