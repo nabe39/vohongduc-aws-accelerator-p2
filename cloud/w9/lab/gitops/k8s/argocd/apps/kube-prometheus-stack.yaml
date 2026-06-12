@@ -29,12 +29,13 @@ spec:
               group_wait: 10s
               group_interval: 10s
               repeat_interval: 1h
-              receiver: 'email-receiver'
+              receiver: 'null'
               routes:
               - matchers:
                 - alertname = ApiLowSuccessRateSLO
                 receiver: 'email-receiver'
             receivers:
+            - name: 'null'
             - name: 'email-receiver'
               email_configs:
               - to: 'vohongduc000@gmail.com'
