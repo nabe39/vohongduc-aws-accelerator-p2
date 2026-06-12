@@ -7,8 +7,9 @@ spec:
   metrics:
   - name: success-rate
     interval: 30s
-    # Cứ mỗi 30 giây chạy query, nếu success rate >= 95% là đạt
-    successCondition: result >= 0.95
+    # Cứ mỗi 30 giây chạy query, nếu success rate >= 95% là đạt.
+    # Sử dụng 'len(result) == 0' để bỏ qua (cho qua) khi không có traffic, tránh lỗi so sánh kiểu dữ liệu.
+    successCondition: len(result) == 0 || result[0] >= 0.95
     # Tối đa 3 lần kiểm tra thất bại liên tiếp thì tự động abort rollout
     failureLimit: 3
     provider:
