@@ -19,7 +19,7 @@ spec:
           (sum(rate(flask_http_request_total{namespace="demo", service="api"}[5m])) or on() vector(1))
         ) < 0.95
       # Thời gian duy trì lỗi tối thiểu để chính thức bắn alert (tránh nhiễu nhất thời)
-      for: 2m
+      for: 0s
       labels:
         severity: critical
       annotations:
