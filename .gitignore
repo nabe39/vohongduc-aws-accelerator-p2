@@ -33,3 +33,4 @@ kubeconfig_*.yaml
 # Local environment secret files
 .env
 *.env
+alertmanager-local.yaml
