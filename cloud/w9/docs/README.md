@@ -7,14 +7,14 @@ Dự án này tích hợp các kiến thức và thực hành cốt lõi của t
 
 ---
 
-## 📌 Yêu cầu hệ thống (Prerequisites)
+## Yêu cầu hệ thống (Prerequisites)
 *   **Docker Desktop** (Đã khởi động).
 *   **WSL 2** (Ubuntu 20.04 hoặc 24.04).
 *   **Minikube**, **kubectl**, **git** đã cài đặt trong WSL.
 
 ---
 
-## 🚀 Phần 1: Hướng dẫn chạy dự án lần đầu (Step-by-Step)
+## Phần 1: Hướng dẫn chạy dự án lần đầu (Step-by-Step)
 
 ### Bước 1: Khởi động Minikube với cấu hình tài nguyên đủ lớn
 Vì hệ thống chạy đồng thời ArgoCD, Argo Rollouts và Prometheus Stack nên cần cấp đủ CPU và RAM cho Minikube:
@@ -140,7 +140,7 @@ kubectl -n demo run load --image=busybox --restart=Never -- sh -c "while true; d
 
 ---
 
-## 🔄 Phần 2: Cách khởi động lại dự án sau khi tắt máy (Restart Guide)
+## Phần 2: Cách khởi động lại dự án sau khi tắt máy (Restart Guide)
 
 Khi bạn đã hoàn thành các bước thiết lập ở trên, nếu tắt máy/khởi động lại máy tính, bạn **không cần cài đặt lại** bất kỳ tài nguyên nào từ đầu. ArgoCD có cơ chế tự động đồng bộ (Self-Heal & Auto Sync) nên toàn bộ ứng dụng sẽ tự động phục hồi về trạng thái cũ dựa trên Git.
 
@@ -183,4 +183,46 @@ kubectl port-forward svc/kube-prometheus-stack-grafana -n monitoring 3000 &
 
 ### Bước 5: Tiếp tục làm việc
 * Bây giờ toàn bộ hệ thống đã chạy lại bình thường. Bạn có thể chỉnh sửa mã nguồn, đẩy lên Git và quan sát ArgoCD tự động đồng bộ như bình thường.
-* Nếu muốn tạo lại tải giả lập (sau khi đã xóa Pod load), bạn chỉ cần chạy lại lệnh ở **Bước 8 (Phần 1)**.
+* Nếu muốn quản lý tải giả lập hoặc kiểm tra hệ thống, hãy làm theo hướng dẫn chi tiết ở phần dưới đây.
+
+### Apply gmail va password vao alertmanager.env
+python apply_env.py
+
+---
+
+## Hướng dẫn quản lý Traffic giả lập & Kiểm tra hệ thống
+
+### 1. Quản lý lưu lượng tải giả lập (Load Generator)
+*   **Tạo tải giả lập:** Chạy một Pod gửi request liên tục (mỗi giây một lần) vào ứng dụng `api`:
+    ```bash
+    kubectl -n demo run load-test --image=busybox --restart=Never -- sh -c "while true; do wget -qO- http://api:8080/; sleep 1; done"
+    ```
+*   **Theo dõi hoạt động của tải:** Xem logs từ Pod load-test để xác định xem traffic có được gửi thành công không:
+    ```bash
+    kubectl logs -n demo load-test --tail=10
+    ```
+    *Kết quả đúng:* Sẽ liên tục in ra phản hồi từ API dạng `{"ok":true,"version":"v1"}`.
+*   **Xóa tải giả lập (Dừng gửi traffic):** 
+    ```bash
+    kubectl -n demo delete pod load-test
+    ```
+
+### 2. Các lệnh kiểm tra và xác minh nhanh
+*   **Kiểm tra trạng thái đồng bộ của ArgoCD:**
+    ```bash
+    kubectl get applications -n argocd
+    ```
+    *Đảm bảo các ứng dụng (bao gồm `api` và `web`) đều báo trạng thái `Synced` và `Healthy`.*
+*   **Kiểm tra tài nguyên K8s của ứng dụng `api`:**
+    ```bash
+    kubectl get all -n demo -l app=api
+    ```
+    *Đảm bảo các Pods của `api` ở trạng thái `Running` và Service `api` đang lắng nghe ở cổng `8080`.*
+*   **Theo dõi trực tiếp quá trình Canary Rollout:**
+    ```bash
+    kubectl argo rollouts get rollout api -n demo --watch
+    ```
+*   **Kiểm tra logs của ứng dụng `api`:**
+    ```bash
+    kubectl logs -n demo -l app=api --tail=20
+    ```

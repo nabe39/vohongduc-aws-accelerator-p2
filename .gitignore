@@ -29,3 +29,7 @@ terraform.rc
 
 # Dynamic Kubernetes config files
 kubeconfig_*.yaml
+
+# Local environment secret files
+.env
+*.env

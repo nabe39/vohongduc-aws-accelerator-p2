@@ -1,0 +1,27 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: api-slo-alerts
+  namespace: demo
+  labels:
+    # Nhãn bắt buộc để Prometheus Operator quét và tự động load rule này
+    release: kube-prometheus-stack
+spec:
+  groups:
+  - name: api-slo
+    rules:
+    - alert: ApiLowSuccessRateSLO
+      # Alert kích hoạt khi tỷ lệ thành công của API < 95% trong vòng 5 phút liên tục
+      expr: |
+        (
+          sum(rate(flask_http_request_total{status!~"5..", namespace="demo", service="api"}[5m]))
+          /
+          (sum(rate(flask_http_request_total{namespace="demo", service="api"}[5m])) or on() vector(1))
+        ) < 0.95
+      # Thời gian duy trì lỗi tối thiểu để chính thức bắn alert (tránh nhiễu nhất thời)
+      for: 2m
+      labels:
+        severity: critical
+      annotations:
+        summary: "API low success rate (below 95% SLO)"
+        description: "Tỉ lệ thành công của api giảm dưới 95% trong 2 phút liên tiếp. Giá trị hiện tại: {{ $value }}."
