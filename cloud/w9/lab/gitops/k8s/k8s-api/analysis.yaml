@@ -15,8 +15,11 @@ spec:
       prometheus:
         # Đường dẫn DNS nội bộ của Prometheus trong Kubernetes cluster
         address: http://kube-prometheus-stack-prometheus.monitoring.svc:9090
-        # Query tính toán tỉ lệ thành công (không phải lỗi 5xx) trong 2 phút gần nhất
+        # Query tính toán tỉ lệ thành công (không phải lỗi 5xx) trong 2 phút gần nhất.
+        # Sử dụng 'or on() vector(1)' để trả về 1 (100% thành công) nếu không có traffic, tránh lỗi vector rỗng.
         query: |
-          sum(rate(flask_http_request_total{status!~"5..", namespace="demo", service="api"}[2m]))
-          /
-          (sum(rate(flask_http_request_total{namespace="demo", service="api"}[2m])) or on() vector(1))
+          (
+            sum(rate(flask_http_request_total{status!~"5..", namespace="demo", service="api"}[2m]))
+            /
+            sum(rate(flask_http_request_total{namespace="demo", service="api"}[2m]))
+          ) or on() vector(1)
