@@ -1,0 +1,22 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: api-success-rate
+  namespace: demo
+spec:
+  metrics:
+  - name: success-rate
+    interval: 30s
+    # Cứ mỗi 30 giây chạy query, nếu success rate >= 95% là đạt
+    successCondition: result >= 0.95
+    # Tối đa 3 lần kiểm tra thất bại liên tiếp thì tự động abort rollout
+    failureLimit: 3
+    provider:
+      prometheus:
+        # Đường dẫn DNS nội bộ của Prometheus trong Kubernetes cluster
+        address: http://kube-prometheus-stack-prometheus.monitoring.svc:9090
+        # Query tính toán tỉ lệ thành công (không phải lỗi 5xx) trong 2 phút gần nhất
+        query: |
+          sum(rate(flask_http_request_total{status!~"5..", namespace="demo", service="api"}[2m]))
+          /
+          (sum(rate(flask_http_request_total{namespace="demo", service="api"}[2m])) or on() vector(1))

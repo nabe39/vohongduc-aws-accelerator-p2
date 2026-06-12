@@ -7,14 +7,14 @@ Dự án này tích hợp các kiến thức và thực hành cốt lõi của t
 
 ---
 
-## 📌 Yêu cầu hệ thống (Prerequisites)
+## Yêu cầu hệ thống (Prerequisites)
 *   **Docker Desktop** (Đã khởi động).
 *   **WSL 2** (Ubuntu 20.04 hoặc 24.04).
 *   **Minikube**, **kubectl**, **git** đã cài đặt trong WSL.
 
 ---
 
-## 🚀 Phần 1: Hướng dẫn chạy dự án lần đầu (Step-by-Step)
+## Phần 1: Hướng dẫn chạy dự án lần đầu (Step-by-Step)
 
 ### Bước 1: Khởi động Minikube với cấu hình tài nguyên đủ lớn
 Vì hệ thống chạy đồng thời ArgoCD, Argo Rollouts và Prometheus Stack nên cần cấp đủ CPU và RAM cho Minikube:
@@ -140,7 +140,7 @@ kubectl -n demo run load --image=busybox --restart=Never -- sh -c "while true; d
 
 ---
 
-## 🔄 Phần 2: Cách khởi động lại dự án sau khi tắt máy (Restart Guide)
+## Phần 2: Cách khởi động lại dự án sau khi tắt máy (Restart Guide)
 
 Khi bạn đã hoàn thành các bước thiết lập ở trên, nếu tắt máy/khởi động lại máy tính, bạn **không cần cài đặt lại** bất kỳ tài nguyên nào từ đầu. ArgoCD có cơ chế tự động đồng bộ (Self-Heal & Auto Sync) nên toàn bộ ứng dụng sẽ tự động phục hồi về trạng thái cũ dựa trên Git.
 
@@ -185,9 +185,12 @@ kubectl port-forward svc/kube-prometheus-stack-grafana -n monitoring 3000 &
 * Bây giờ toàn bộ hệ thống đã chạy lại bình thường. Bạn có thể chỉnh sửa mã nguồn, đẩy lên Git và quan sát ArgoCD tự động đồng bộ như bình thường.
 * Nếu muốn quản lý tải giả lập hoặc kiểm tra hệ thống, hãy làm theo hướng dẫn chi tiết ở phần dưới đây.
 
+### Apply gmail va password vao alertmanager.env
+python apply_env.py
+
 ---
 
-## 🔍 Hướng dẫn quản lý Traffic giả lập & Kiểm tra hệ thống
+## Hướng dẫn quản lý Traffic giả lập & Kiểm tra hệ thống
 
 ### 1. Quản lý lưu lượng tải giả lập (Load Generator)
 *   **Tạo tải giả lập:** Chạy một Pod gửi request liên tục (mỗi giây một lần) vào ứng dụng `api`:
