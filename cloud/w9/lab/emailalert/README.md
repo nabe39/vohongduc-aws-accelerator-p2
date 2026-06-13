@@ -100,24 +100,24 @@ terraform destroy -auto-approve
 ### 1. Trạng thái Xác nhận SNS Subscription thành công
 *(Mô tả: Hình ảnh trang web hiển thị "Subscription confirmed!" sau khi click liên kết xác nhận từ Email)*
 <!-- Thay thế link ảnh bên dưới bằng ảnh thật của bạn -->
-`![SNS Subscription Confirmed](../image/SNS_confirm.png)`
+![SNS Subscription Confirmed](../image/SNS_confirm.png)
 
 ### 2. CloudWatch Alarm chuyển sang trạng thái ALARM (In alarm)
 *(Mô tả: Biểu đồ giám sát CPU vượt ngưỡng 80% và trạng thái Alarm hiển thị màu đỏ)*
 <!-- Thay thế link ảnh bên dưới bằng ảnh thật của bạn -->
-`![CloudWatch Alarm State](../image/alarm.png)`
+![CloudWatch Alarm State](../image/alarm.png)
 
 ### 3. Email Alert nhận từ AWS SNS
 *(Mô tả: Nội dung Email cảnh báo CPU vượt quá ngưỡng gửi từ AWS)*
 <!-- Thay thế link ảnh bên dưới bằng ảnh thật của bạn -->
-`![Email Alert Received](../image/email_alarm.png)`
+![Email Alert Received](../image/email_alarm.png)
 
 ### 4. CloudWatch Alarm khôi phục về trạng thái OK
 *(Mô tả: Biểu đồ CPU giảm và trạng thái Alarm đổi sang màu xanh lá)*
 <!-- Thay thế link ảnh bên dưới bằng ảnh thật của bạn -->
-`![CloudWatch Alarm OK State](../image/ok.png)`
+![CloudWatch Alarm OK State](../image/ok.png)
 
 ### 5. Email thông báo Recovery (OK) nhận từ AWS SNS
 *(Mô tả: Nội dung Email khôi phục khi CPU trở lại bình thường)*
 <!-- Thay thế link ảnh bên dưới bằng ảnh thật của bạn -->
-`![Email Recovery Received](../image/email_ok.png)`
+![Email Recovery Received](../image/email_ok.png)
