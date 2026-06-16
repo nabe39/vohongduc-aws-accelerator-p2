@@ -1,0 +1,15 @@
+# ==============================================================================
+# TRIVY EXCEPTION IGNORE LIST
+# ==============================================================================
+# Tài liệu này định nghĩa danh sách các CVE được phép bỏ qua tạm thời trong CI/CD.
+# Mọi mục trong danh sách này phải có mã ADR (Architecture Decision Record) đi kèm
+# và có thời gian hết hạn (expiration date) cụ thể.
+# ==============================================================================
+
+# [ADR-2026-004] Bỏ qua lỗi tràn bộ đệm curl SOCKS5 (Chờ bản vá từ base image của CentOS/Debian)
+# Trạng thái: Đã phê duyệt, Ngày hết hạn: 2026-07-15
+CVE-2023-38545
+
+# [ADR-2026-005] Lỗi trong thư viện OpenSSL (Không ảnh hưởng đến runtime của ứng dụng Node.js hiện tại)
+# Trạng thái: Đã phê duyệt, Ngày hết hạn: 2026-07-20
+CVE-2024-2511
