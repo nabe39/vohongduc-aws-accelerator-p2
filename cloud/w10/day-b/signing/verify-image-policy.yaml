@@ -1,0 +1,26 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: verify-image-signature
+  annotations:
+    policies.kyverno.io/title: Verify Image Signature
+    policies.kyverno.io/description: >-
+      Chính sách này đảm bảo toàn bộ container images chạy trong cluster được ký số bởi
+      chữ ký đáng tin cậy sử dụng Cosign.
+spec:
+  validationFailureAction: Enforce # Chặn trực tiếp (Enforce) hoặc cảnh báo (Audit)
+  background: false
+  rules:
+    - name: verify-signature
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      verifyImages:
+        - imageReferences:
+            - "123456789012.dkr.ecr.ap-southeast-1.amazonaws.com/my-app:*" # Đường dẫn ECR repo của bạn
+          key: |-
+            -----BEGIN PUBLIC KEY-----
+            MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0a... # Thay thế bằng khóa công khai (cosign.pub) của bạn
+            -----END PUBLIC KEY-----
