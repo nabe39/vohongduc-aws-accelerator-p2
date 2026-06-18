@@ -1,0 +1,463 @@
+apiVersion: templates.gatekeeper.sh/v1
+kind: ConstraintTemplate
+metadata:
+  name: k8sdisallowedtags
+  annotations:
+    metadata.gatekeeper.sh/title: Disallow tags
+    metadata.gatekeeper.sh/version: 1.0.2
+    description: 'Requires container images to have an image tag different from the
+      ones in the specified list.
+
+      https://kubernetes.io/docs/concepts/containers/images/#image-names'
+    argocd.argoproj.io/sync-wave: '1'
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sDisallowedTags
+      validation:
+        openAPIV3Schema:
+          type: object
+          properties:
+            exemptImages:
+              description: 'Any container that uses an image that matches an entry
+                in this list will be excluded from enforcement. Prefix-matching can
+                be signified with `*`. For example: `my-image-*`. It is recommended
+                that users use the fully-qualified Docker image name (e.g. start with
+                a domain name) in order to avoid unexpectedly exempting images from
+                an untrusted repository.'
+              type: array
+              items:
+                type: string
+            tags:
+              type: array
+              description: Disallowed container image tags.
+              items:
+                type: string
+  targets:
+  - target: admission.k8s.gatekeeper.sh
+    rego: "package k8sdisallowedtags\n\nimport data.lib.exempt_container.is_exempt\n\
+      \nviolation[{\"msg\": msg}] {\n    container := input_containers[_]\n    not\
+      \ is_exempt(container)\n    tags := [tag_with_prefix | tag := input.parameters.tags[_];\
+      \ tag_with_prefix := concat(\":\", [\"\", tag])]\n    strings.any_suffix_match(container.image,\
+      \ tags)\n    msg := sprintf(\"container <%v> uses a disallowed tag <%v>; disallowed\
+      \ tags are %v\", [container.name, container.image, input.parameters.tags])\n\
+      }\n\nviolation[{\"msg\": msg}] {\n    container := input_containers[_]\n   \
+      \ not is_exempt(container)\n    parts := split(container.image, \"/\")\n   \
+      \ not contains(parts[count(parts) - 1], \":\")\n    msg := sprintf(\"container\
+      \ <%v> didn't specify an image tag <%v>\", [container.name, container.image])\n\
+      }\n\ninput_containers[c] {\n    c := input.review.object.spec.containers[_]\n\
+      }\ninput_containers[c] {\n    c := input.review.object.spec.initContainers[_]\n\
+      }\ninput_containers[c] {\n    c := input.review.object.spec.ephemeralContainers[_]\n\
+      }\n"
+    libs:
+    - "package lib.exempt_container\n\nis_exempt(container) {\n    exempt_images :=\
+      \ object.get(object.get(input, \"parameters\", {}), \"exemptImages\", [])\n\
+      \    img := container.image\n    exemption := exempt_images[_]\n    _matches_exemption(img,\
+      \ exemption)\n}\n\n_matches_exemption(img, exemption) {\n    not endswith(exemption,\
+      \ \"*\")\n    exemption == img\n}\n\n_matches_exemption(img, exemption) {\n\
+      \    endswith(exemption, \"*\")\n    prefix := trim_suffix(exemption, \"*\"\
+      )\n    startswith(img, prefix)\n}\n"
+---
+apiVersion: templates.gatekeeper.sh/v1
+kind: ConstraintTemplate
+metadata:
+  name: k8srequiredresources
+  annotations:
+    metadata.gatekeeper.sh/title: Required Resources
+    metadata.gatekeeper.sh/version: 1.0.1
+    description: 'Requires containers to have defined resources set.
+
+      https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+    argocd.argoproj.io/sync-wave: '1'
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sRequiredResources
+      validation:
+        openAPIV3Schema:
+          type: object
+          properties:
+            exemptImages:
+              description: 'Any container that uses an image that matches an entry
+                in this list will be excluded from enforcement. Prefix-matching can
+                be signified with `*`. For example: `my-image-*`.
+
+                It is recommended that users use the fully-qualified Docker image
+                name (e.g. start with a domain name) in order to avoid unexpectedly
+                exempting images from an untrusted repository.'
+              type: array
+              items:
+                type: string
+            limits:
+              type: array
+              description: A list of limits that should be enforced (`cpu`, `memory`,
+                or both).
+              items:
+                type: string
+                enum:
+                - cpu
+                - memory
+            requests:
+              type: array
+              description: A list of requests that should be enforced (`cpu`, `memory`,
+                or both).
+              items:
+                type: string
+                enum:
+                - cpu
+                - memory
+  targets:
+  - target: admission.k8s.gatekeeper.sh
+    rego: "package k8srequiredresources\n\nimport data.lib.exempt_container.is_exempt\n\
+      \nviolation[{\"msg\": msg}] {\n  general_violation[{\"msg\": msg, \"field\"\
+      : \"containers\"}]\n}\n\nviolation[{\"msg\": msg}] {\n  general_violation[{\"\
+      msg\": msg, \"field\": \"initContainers\"}]\n}\n\ngeneral_violation[{\"msg\"\
+      : msg, \"field\": field}] {\n  container := input.review.object.spec[field][_]\n\
+      \  not is_exempt(container)\n  provided := {resource_type | container.resources.limits[resource_type]}\n\
+      \  required := {resource_type | resource_type := input.parameters.limits[_]}\n\
+      \  missing := required - provided\n  count(missing) > 0\n  msg := sprintf(\"\
+      container <%v> does not have <%v> limits defined\", [container.name, missing])\n\
+      }\n\ngeneral_violation[{\"msg\": msg, \"field\": field}] {\n  container := input.review.object.spec[field][_]\n\
+      \  not is_exempt(container)\n  provided := {resource_type | container.resources.requests[resource_type]}\n\
+      \  required := {resource_type | resource_type := input.parameters.requests[_]}\n\
+      \  missing := required - provided\n  count(missing) > 0\n  msg := sprintf(\"\
+      container <%v> does not have <%v> requests defined\", [container.name, missing])\n\
+      }\n"
+    libs:
+    - "package lib.exempt_container\n\nis_exempt(container) {\n    exempt_images :=\
+      \ object.get(object.get(input, \"parameters\", {}), \"exemptImages\", [])\n\
+      \    img := container.image\n    exemption := exempt_images[_]\n    _matches_exemption(img,\
+      \ exemption)\n}\n\n_matches_exemption(img, exemption) {\n    not endswith(exemption,\
+      \ \"*\")\n    exemption == img\n}\n\n_matches_exemption(img, exemption) {\n\
+      \    endswith(exemption, \"*\")\n    prefix := trim_suffix(exemption, \"*\"\
+      )\n    startswith(img, prefix)\n}\n"
+---
+apiVersion: templates.gatekeeper.sh/v1
+kind: ConstraintTemplate
+metadata:
+  name: k8spspallowedusers
+  annotations:
+    metadata.gatekeeper.sh/title: Allowed Users
+    metadata.gatekeeper.sh/version: 1.0.3
+    metadata.gatekeeper.sh/bundle: pod-security-restricted
+    description: Controls the user and group IDs of the container and some volumes.
+      Corresponds to the `runAsUser`, `runAsGroup`, `supplementalGroups`, and `fsGroup`
+      fields in a PodSecurityPolicy. For more information, see https://kubernetes.io/docs/concepts/policy/pod-security-policy/#users-and-groups
+    argocd.argoproj.io/sync-wave: '1'
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sPSPAllowedUsers
+      validation:
+        openAPIV3Schema:
+          type: object
+          description: Controls the user and group IDs of the container and some volumes.
+            Corresponds to the `runAsUser`, `runAsGroup`, `supplementalGroups`, and
+            `fsGroup` fields in a PodSecurityPolicy. For more information, see https://kubernetes.io/docs/concepts/policy/pod-security-policy/#users-and-groups
+          properties:
+            exemptImages:
+              description: 'Any container that uses an image that matches an entry
+                in this list will be excluded from enforcement. Prefix-matching can
+                be signified with `*`. For example: `my-image-*`.
+
+                It is recommended that users use the fully-qualified Docker image
+                name (e.g. start with a domain name) in order to avoid unexpectedly
+                exempting images from an untrusted repository.'
+              type: array
+              items:
+                type: string
+            runAsUser:
+              type: object
+              description: Controls which user ID values are allowed in a Pod or container-level
+                SecurityContext.
+              properties:
+                rule:
+                  type: string
+                  description: A strategy for applying the runAsUser restriction.
+                  enum:
+                  - MustRunAs
+                  - MustRunAsNonRoot
+                  - RunAsAny
+                ranges:
+                  type: array
+                  description: A list of user ID ranges affected by the rule.
+                  items:
+                    type: object
+                    description: The range of user IDs affected by the rule.
+                    properties:
+                      min:
+                        type: integer
+                        description: The minimum user ID in the range, inclusive.
+                      max:
+                        type: integer
+                        description: The maximum user ID in the range, inclusive.
+            runAsGroup:
+              type: object
+              description: Controls which group ID values are allowed in a Pod or
+                container-level SecurityContext.
+              properties:
+                rule:
+                  type: string
+                  description: A strategy for applying the runAsGroup restriction.
+                  enum:
+                  - MustRunAs
+                  - MayRunAs
+                  - RunAsAny
+                ranges:
+                  type: array
+                  description: A list of group ID ranges affected by the rule.
+                  items:
+                    type: object
+                    description: The range of group IDs affected by the rule.
+                    properties:
+                      min:
+                        type: integer
+                        description: The minimum group ID in the range, inclusive.
+                      max:
+                        type: integer
+                        description: The maximum group ID in the range, inclusive.
+            supplementalGroups:
+              type: object
+              description: Controls the supplementalGroups values that are allowed
+                in a Pod or container-level SecurityContext.
+              properties:
+                rule:
+                  type: string
+                  description: A strategy for applying the supplementalGroups restriction.
+                  enum:
+                  - MustRunAs
+                  - MayRunAs
+                  - RunAsAny
+                ranges:
+                  type: array
+                  description: A list of group ID ranges affected by the rule.
+                  items:
+                    type: object
+                    description: The range of group IDs affected by the rule.
+                    properties:
+                      min:
+                        type: integer
+                        description: The minimum group ID in the range, inclusive.
+                      max:
+                        type: integer
+                        description: The maximum group ID in the range, inclusive.
+            fsGroup:
+              type: object
+              description: Controls the fsGroup values that are allowed in a Pod or
+                container-level SecurityContext.
+              properties:
+                rule:
+                  type: string
+                  description: A strategy for applying the fsGroup restriction.
+                  enum:
+                  - MustRunAs
+                  - MayRunAs
+                  - RunAsAny
+                ranges:
+                  type: array
+                  description: A list of group ID ranges affected by the rule.
+                  items:
+                    type: object
+                    description: The range of group IDs affected by the rule.
+                    properties:
+                      min:
+                        type: integer
+                        description: The minimum group ID in the range, inclusive.
+                      max:
+                        type: integer
+                        description: The maximum group ID in the range, inclusive.
+  targets:
+  - target: admission.k8s.gatekeeper.sh
+    rego: "package k8spspallowedusers\n\nimport data.lib.exclude_update.is_update\n\
+      import data.lib.exempt_container.is_exempt\n\nviolation[{\"msg\": msg}] {\n\
+      \  # runAsUser, runAsGroup, supplementalGroups, fsGroup fields are immutable.\n\
+      \  not is_update(input.review)\n\n  fields := [\"runAsUser\", \"runAsGroup\"\
+      , \"supplementalGroups\", \"fsGroup\"]\n  field := fields[_]\n  container :=\
+      \ input_containers[_]\n  not is_exempt(container)\n  msg := get_type_violation(field,\
+      \ container)\n}\n\nget_type_violation(field, container) = msg {\n  field ==\
+      \ \"runAsUser\"\n  params := input.parameters[field]\n  msg := get_user_violation(params,\
+      \ container)\n}\n\nget_type_violation(field, container) = msg {\n  field !=\
+      \ \"runAsUser\"\n  params := input.parameters[field]\n  msg := get_violation(field,\
+      \ params, container)\n}\n\n# RunAsUser (separate due to \"MustRunAsNonRoot\"\
+      )\nget_user_violation(params, container) = msg {\n  rule := params.rule\n  provided_user\
+      \ := get_field_value(\"runAsUser\", container, input.review)\n  not accept_users(rule,\
+      \ provided_user)\n  msg := sprintf(\"Container %v is attempting to run as disallowed\
+      \ user %v. Allowed runAsUser: %v\", [container.name, provided_user, params])\n\
+      }\n\nget_user_violation(params, container) = msg {\n  not get_field_value(\"\
+      runAsUser\", container, input.review)\n  params.rule = \"MustRunAs\"\n  msg\
+      \ := sprintf(\"Container %v is attempting to run without a required securityContext/runAsUser\"\
+      , [container.name])\n}\n\nget_user_violation(params, container) = msg {\n  params.rule\
+      \ = \"MustRunAsNonRoot\"\n  not get_field_value(\"runAsUser\", container, input.review)\n\
+      \  not get_field_value(\"runAsNonRoot\", container, input.review)\n  msg :=\
+      \ sprintf(\"Container %v is attempting to run without a required securityContext/runAsNonRoot\
+      \ or securityContext/runAsUser != 0\", [container.name])\n}\n\naccept_users(\"\
+      RunAsAny\", _)\n\naccept_users(\"MustRunAsNonRoot\", provided_user) := provided_user\
+      \ != 0\n\naccept_users(\"MustRunAs\", provided_user) := res  {\n  ranges :=\
+      \ input.parameters.runAsUser.ranges\n  res := is_in_range(provided_user, ranges)\n\
+      }\n\n# Group Options\nget_violation(field, params, container) = msg {\n  rule\
+      \ := params.rule\n  provided_value := get_field_value(field, container, input.review)\n\
+      \  not is_array(provided_value)\n  not accept_value(rule, provided_value, params.ranges)\n\
+      \  msg := sprintf(\"Container %v is attempting to run as disallowed group %v.\
+      \ Allowed %v: %v\", [container.name, provided_value, field, params])\n}\n# SupplementalGroups\
+      \ is array value\nget_violation(field, params, container) = msg {\n  rule :=\
+      \ params.rule\n  array_value := get_field_value(field, container, input.review)\n\
+      \  is_array(array_value)\n  provided_value := array_value[_]\n  not accept_value(rule,\
+      \ provided_value, params.ranges)\n  msg := sprintf(\"Container %v is attempting\
+      \ to run with disallowed supplementalGroups %v. Allowed %v: %v\", [container.name,\
+      \ array_value, field, params])\n}\n\nget_violation(field, params, container)\
+      \ = msg {\n  not get_field_value(field, container, input.review)\n  params.rule\
+      \ == \"MustRunAs\"\n  msg := sprintf(\"Container %v is attempting to run without\
+      \ a required securityContext/%v. Allowed %v: %v\", [container.name, field, field,\
+      \ params])\n}\n\naccept_value(\"RunAsAny\", _, _)\n\naccept_value(\"MayRunAs\"\
+      , provided_value, ranges) := is_in_range(provided_value, ranges)\n\naccept_value(\"\
+      MustRunAs\", provided_value, ranges) := is_in_range(provided_value, ranges)\n\
+      \n\n# If container level is provided, that takes precedence\nget_field_value(field,\
+      \ container, _) := get_seccontext_field(field, container)\n\n# If no container\
+      \ level exists, use pod level\nget_field_value(field, container, review) = out\
+      \ {\n  not has_seccontext_field(field, container)\n  review.kind.kind == \"\
+      Pod\"\n  pod_value := get_seccontext_field(field, review.object.spec)\n  out\
+      \ := pod_value\n}\n\n# Helper Functions\nis_in_range(val, ranges) = res {\n\
+      \  matching := {1 | val >= ranges[j].min; val <= ranges[j].max}\n  res := count(matching)\
+      \ > 0\n}\n\nhas_seccontext_field(field, obj) {\n  get_seccontext_field(field,\
+      \ obj)\n}\n\nhas_seccontext_field(field, obj) {\n  get_seccontext_field(field,\
+      \ obj) == false\n}\n\nget_seccontext_field(field, obj) = out {\n  out = obj.securityContext[field]\n\
+      }\n\ninput_containers[c] {\n  c := input.review.object.spec.containers[_]\n\
+      }\ninput_containers[c] {\n  c := input.review.object.spec.initContainers[_]\n\
+      }\ninput_containers[c] {\n    c := input.review.object.spec.ephemeralContainers[_]\n\
+      }\n"
+    libs:
+    - "package lib.exclude_update\n\nis_update(review) {\n    review.operation ==\
+      \ \"UPDATE\"\n}\n"
+    - "package lib.exempt_container\n\nis_exempt(container) {\n    exempt_images :=\
+      \ object.get(object.get(input, \"parameters\", {}), \"exemptImages\", [])\n\
+      \    img := container.image\n    exemption := exempt_images[_]\n    _matches_exemption(img,\
+      \ exemption)\n}\n\n_matches_exemption(img, exemption) {\n    not endswith(exemption,\
+      \ \"*\")\n    exemption == img\n}\n\n_matches_exemption(img, exemption) {\n\
+      \    endswith(exemption, \"*\")\n    prefix := trim_suffix(exemption, \"*\"\
+      )\n    startswith(img, prefix)\n}\n"
+---
+apiVersion: templates.gatekeeper.sh/v1
+kind: ConstraintTemplate
+metadata:
+  name: k8spsphostnetworkingports
+  annotations:
+    metadata.gatekeeper.sh/title: Host Networking Ports
+    metadata.gatekeeper.sh/version: 1.1.5
+    metadata.gatekeeper.sh/bundle: pod-security-baseline, pod-security-restricted
+    description: Controls usage of host network namespace by pod containers. HostNetwork
+      verification happens without exception for exemptImages. Specific ports must
+      be specified. Corresponds to the `hostNetwork` and `hostPorts` fields in a PodSecurityPolicy.
+      For more information, see https://kubernetes.io/docs/concepts/policy/pod-security-policy/#host-namespaces
+    argocd.argoproj.io/sync-wave: '1'
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sPSPHostNetworkingPorts
+      validation:
+        openAPIV3Schema:
+          type: object
+          description: Controls usage of host network namespace by pod containers.
+            HostNetwork verification happens without exception for exemptImages. Specific
+            ports must be specified. Corresponds to the `hostNetwork` and `hostPorts`
+            fields in a PodSecurityPolicy. For more information, see https://kubernetes.io/docs/concepts/policy/pod-security-policy/#host-namespaces
+          properties:
+            exemptImages:
+              description: 'Any container that uses an image that matches an entry
+                in this list will be excluded from enforcement. Prefix-matching can
+                be signified with `*`. For example: `my-image-*`.
+
+                It is recommended that users use the fully-qualified Docker image
+                name (e.g. start with a domain name) in order to avoid unexpectedly
+                exempting images from an untrusted repository.'
+              type: array
+              items:
+                type: string
+            hostNetwork:
+              description: Determines if the policy allows the use of HostNetwork
+                in the pod spec.
+              type: boolean
+            min:
+              description: The start of the allowed port range, inclusive.
+              type: integer
+            max:
+              description: The end of the allowed port range, inclusive.
+              type: integer
+  targets:
+  - target: admission.k8s.gatekeeper.sh
+    code:
+    - engine: K8sNativeValidation
+      source:
+        variables:
+        - name: containers
+          expression: 'has(variables.anyObject.spec.containers) ? variables.anyObject.spec.containers
+            : []'
+        - name: initContainers
+          expression: 'has(variables.anyObject.spec.initContainers) ? variables.anyObject.spec.initContainers
+            : []'
+        - name: ephemeralContainers
+          expression: 'has(variables.anyObject.spec.ephemeralContainers) ? variables.anyObject.spec.ephemeralContainers
+            : []'
+        - name: exemptImagePrefixes
+          expression: "!has(variables.params.exemptImages) ? [] :\n  variables.params.exemptImages.filter(image,\
+            \ image.endsWith(\"*\")).map(image, string(image).replace(\"*\", \"\"\
+            ))\n"
+        - name: exemptImageExplicit
+          expression: "!has(variables.params.exemptImages) ? [] : \n  variables.params.exemptImages.filter(image,\
+            \ !image.endsWith(\"*\"))\n"
+        - name: exemptImages
+          expression: "(variables.containers + variables.initContainers + variables.ephemeralContainers).filter(container,\n\
+            \  container.image in variables.exemptImageExplicit ||\n  variables.exemptImagePrefixes.exists(exemption,\
+            \ string(container.image).startsWith(exemption))\n).map(container, container.image)\n"
+        - name: badContainers
+          expression: "(variables.containers + variables.initContainers + variables.ephemeralContainers).filter(container,\n\
+            \  !(container.image in variables.exemptImages) && has(container.ports)\
+            \ &&\n  (\n    (container.ports.all(port, has(port.hostPort) && has(variables.params.min)\
+            \ && port.hostPort < variables.params.min)) ||\n    (container.ports.all(port,\
+            \ has(port.hostPort) && has(variables.params.max) && port.hostPort > variables.params.max))\n\
+            \  )\n)\n"
+        - name: isUpdate
+          expression: has(request.operation) && request.operation == "UPDATE"
+        - name: hostNetworkAllowed
+          expression: has(variables.params.hostNetwork) && variables.params.hostNetwork
+        - name: hostNetworkEnabled
+          expression: has(variables.anyObject.spec.hostNetwork) && variables.anyObject.spec.hostNetwork
+        - name: hostNetworkViolation
+          expression: variables.hostNetworkEnabled && !variables.hostNetworkAllowed
+        validations:
+        - expression: variables.isUpdate || size(variables.badContainers) == 0
+          messageExpression: '"The specified hostNetwork and hostPort are not allowed,
+            pod: " + variables.anyObject.metadata.name'
+        - expression: variables.isUpdate || !variables.hostNetworkViolation
+          messageExpression: '"The specified hostNetwork and hostPort are not allowed,
+            pod: " + variables.anyObject.metadata.name'
+    - engine: Rego
+      source:
+        rego: "package k8spsphostnetworkingports\n\nimport data.lib.exclude_update.is_update\n\
+          import data.lib.exempt_container.is_exempt\n\nviolation[{\"msg\": msg, \"\
+          details\": {}}] {\n    # spec.hostNetwork field is immutable.\n    not is_update(input.review)\n\
+          \n    input_share_hostnetwork(input.review.object)\n    msg := sprintf(\"\
+          The specified hostNetwork and hostPort are not allowed, pod: %v. Allowed\
+          \ values: %v\", [input.review.object.metadata.name, input.parameters])\n\
+          }\n\ninput_share_hostnetwork(o) {\n    not input.parameters.hostNetwork\n\
+          \    o.spec.hostNetwork\n}\n\ninput_share_hostnetwork(_) {\n    hostPort\
+          \ := input_containers[_].ports[_].hostPort\n    hostPort < input.parameters.min\n\
+          }\n\ninput_share_hostnetwork(_) {\n    hostPort := input_containers[_].ports[_].hostPort\n\
+          \    hostPort > input.parameters.max\n}\n\ninput_containers[c] {\n    c\
+          \ := input.review.object.spec.containers[_]\n    not is_exempt(c)\n}\n\n\
+          input_containers[c] {\n    c := input.review.object.spec.initContainers[_]\n\
+          \    not is_exempt(c)\n}\n\ninput_containers[c] {\n    c := input.review.object.spec.ephemeralContainers[_]\n\
+          \    not is_exempt(c)\n}\n"
+        libs:
+        - "package lib.exclude_update\n\nis_update(review) {\n    review.operation\
+          \ == \"UPDATE\"\n}\n"
+        - "package lib.exempt_container\n\nis_exempt(container) {\n    exempt_images\
+          \ := object.get(object.get(input, \"parameters\", {}), \"exemptImages\"\
+          , [])\n    img := container.image\n    exemption := exempt_images[_]\n \
+          \   _matches_exemption(img, exemption)\n}\n\n_matches_exemption(img, exemption)\
+          \ {\n    not endswith(exemption, \"*\")\n    exemption == img\n}\n\n_matches_exemption(img,\
+          \ exemption) {\n    endswith(exemption, \"*\")\n    prefix := trim_suffix(exemption,\
+          \ \"*\")\n    startswith(img, prefix)\n}\n"
