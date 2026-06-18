@@ -69,8 +69,8 @@ metadata:
 spec:
   match:
     kinds:
-      - apiGroups: [""]
-        kinds: ["Pod"]
+    - apiGroups: ["apps"]
+      kinds: ["Deployment"]
   parameters:
     ranges:
     - min_replicas: 1
