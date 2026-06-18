@@ -6,7 +6,7 @@ on:
     branches:
       - main
     paths:
-      - 'src/api/**'
+      - 'cloud/w10/lab/src/api/**'
       - '.github/workflows/build-push.yml'
   workflow_dispatch:
 
@@ -57,21 +57,21 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
-          context: ./src/api
+          context: ./cloud/w10/lab/src/api
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
       - name: Update rollout.yaml with new version
         run: |
-          sed -i "s|image: ghcr.io/.*/w10-api:.*|image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.semver.outputs.version }}|g" app-api/rollout.yaml
-          sed -i "s|value: \"v.*\"|value: \"v${{ steps.semver.outputs.version }}\"|g" app-api/rollout.yaml
+          sed -i "s|image: ghcr.io/.*/w10-api:.*|image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.semver.outputs.version }}|g" cloud/w10/lab/app-api/rollout.yaml
+          sed -i "s|value: \"v.*\"|value: \"v${{ steps.semver.outputs.version }}\"|g" cloud/w10/lab/app-api/rollout.yaml
 
       - name: Commit and push version update
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add app-api/rollout.yaml
+          git add cloud/w10/lab/app-api/rollout.yaml
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
