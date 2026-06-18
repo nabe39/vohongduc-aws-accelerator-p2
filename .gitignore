@@ -37,3 +37,8 @@ kubeconfig_*.yaml
 .env
 *.env
 alertmanager-local.yaml
+
+# Secrets - DO NOT COMMIT
+**/email-secret.yaml
+**/alertmanager-config.yaml
+*.secret.yaml
