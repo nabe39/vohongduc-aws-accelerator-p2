@@ -10,7 +10,12 @@ spec:
     kinds:
     - apiGroups: [""]
       kinds: ["Pod"]
-    # Exclude system namespaces if necessary, but matching standard pods is fine
+    excludedNamespaces:
+    - "kube-system"
+    - "gatekeeper-system"
+    - "external-secrets"
+    - "argocd"
+    - "monitoring"
   parameters:
     tags:
     - "latest"
@@ -26,6 +31,12 @@ spec:
     kinds:
     - apiGroups: [""]
       kinds: ["Pod"]
+    excludedNamespaces:
+    - "kube-system"
+    - "gatekeeper-system"
+    - "external-secrets"
+    - "argocd"
+    - "monitoring"
   parameters:
     limits:
     - cpu
@@ -42,6 +53,12 @@ spec:
     kinds:
     - apiGroups: [""]
       kinds: ["Pod"]
+    excludedNamespaces:
+    - "kube-system"
+    - "gatekeeper-system"
+    - "external-secrets"
+    - "argocd"
+    - "monitoring"
   parameters:
     runAsUser:
       rule: MustRunAsNonRoot
@@ -57,6 +74,12 @@ spec:
     kinds:
     - apiGroups: [""]
       kinds: ["Pod"]
+    excludedNamespaces:
+    - "kube-system"
+    - "gatekeeper-system"
+    - "external-secrets"
+    - "argocd"
+    - "monitoring"
   parameters:
     hostNetwork: false
 ---
@@ -71,6 +94,12 @@ spec:
     kinds:
     - apiGroups: ["apps"]
       kinds: ["Deployment"]
+    excludedNamespaces:
+    - "kube-system"
+    - "gatekeeper-system"
+    - "external-secrets"
+    - "argocd"
+    - "monitoring"
   parameters:
     ranges:
     - min_replicas: 1
