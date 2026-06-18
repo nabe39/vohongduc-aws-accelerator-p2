@@ -3,11 +3,11 @@ name: validate
 on:
   pull_request:
     paths:
-    - 'app-api/**'
-    - 'app-analysis/**'
-    - 'app-alert/**'
-    - 'app-common/**'
-    - 'argocd/**'
+    - 'cloud/w10/lab/app-api/**'
+    - 'cloud/w10/lab/app-analysis/**'
+    - 'cloud/w10/lab/app-alert/**'
+    - 'cloud/w10/lab/app-common/**'
+    - 'cloud/w10/lab/argocd/**'
     # W10 se them: rbac/**, gatekeeper/**, eso/**, signing/**
 
 jobs:
@@ -27,4 +27,4 @@ jobs:
     - name: Validate manifests
       run: |
         kubeconform -strict -summary -ignore-missing-schemas \
-          app-api/ app-analysis/ app-alert/ app-common/ argocd/
+          cloud/w10/lab/app-api/ cloud/w10/lab/app-analysis/ cloud/w10/lab/app-alert/ cloud/w10/lab/app-common/ cloud/w10/lab/argocd/
