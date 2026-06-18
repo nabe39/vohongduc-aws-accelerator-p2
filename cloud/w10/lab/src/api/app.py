@@ -2,6 +2,7 @@
 import os
 import random
 from flask import Flask, jsonify
+# pyrefly: ignore [missing-import]
 from prometheus_flask_exporter import PrometheusMetrics
 
 app = Flask(__name__)
