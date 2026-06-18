@@ -59,3 +59,19 @@ spec:
       kinds: ["Pod"]
   parameters:
     hostNetwork: false
+---
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sReplicaLimits
+metadata:
+  name: replica-limits
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  match:
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Pod"]
+  parameters:
+    ranges:
+    - min_replicas: 1
+      max_replicas: 5
