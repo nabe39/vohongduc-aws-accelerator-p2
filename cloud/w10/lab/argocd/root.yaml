@@ -9,7 +9,7 @@ spec:
   project: default
   source:
     repoURL: https://github.com/nabe39/vohongduc-aws-accelerator-p2.git
-    path: argocd/apps
+    path: cloud/w10/lab/argocd/apps
     targetRevision: main
   destination:
     server: https://kubernetes.default.svc
