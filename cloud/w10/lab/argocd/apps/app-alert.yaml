@@ -9,8 +9,8 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/Vuong-Bach/temp.git
-    path: app-alert
+    repoURL: https://github.com/nabe39/vohongduc-aws-accelerator-p2.git
+    path: cloud/w10/lab/app-alert
     targetRevision: main
   destination:
     server: https://kubernetes.default.svc

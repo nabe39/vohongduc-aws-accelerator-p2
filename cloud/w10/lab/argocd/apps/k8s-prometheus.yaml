@@ -36,10 +36,10 @@ spec:
             - name: 'null'
             - name: 'email-notifications'
               email_configs:
-              - to: 'vuongbachdoan@gmail.com'
-                from: 'vuongbachdoan@gmail.com'
+              - to: 'vohongduc000@gmail.com'
+                from: 'ducvh.22git@vku.udn.vn'
                 smarthost: 'smtp.gmail.com:587'
-                auth_username: 'vuongbachdoan@gmail.com'
+                auth_username: 'ducvh.22git@vku.udn.vn'
                 auth_password_file: /etc/alertmanager/secrets/alertmanager-email/password
                 require_tls: true
                 headers:
