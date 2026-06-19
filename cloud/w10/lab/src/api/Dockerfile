@@ -1,5 +1,6 @@
 # Lab 2 buổi chiều: Dockerfile
-FROM python:3.13-alpine
+# FROM python:3.13-alpine
+FROM python:3.8-slim
 RUN pip install flask prometheus-flask-exporter
 COPY app.py /app/app.py
 WORKDIR /app
