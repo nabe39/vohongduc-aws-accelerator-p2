@@ -1,0 +1,6 @@
+# Trivy Ignore File
+# Add CVEs to ignore below with comment explanations.
+# Format: CVE-YYYY-XXXXX
+
+# Example exception for timed vendor patch delay (documented in runbooks/adr-cve-exception.md)
+# CVE-2023-12345

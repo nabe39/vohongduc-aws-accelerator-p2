@@ -1,0 +1,23 @@
+# ArgoCD App: Deploy Sigstore Policies
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: sigstore-policies
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/nabe39/vohongduc-aws-accelerator-p2.git
+    path: cloud/w10/lab/policies
+    targetRevision: main
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: cosign-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - ServerSideApply=true
