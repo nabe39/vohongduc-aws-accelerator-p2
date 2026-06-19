@@ -117,4 +117,10 @@ resource "aws_macie2_classification_job" "macie_job" {
   }
 
   sampling_percentage = 100
+
+  # AWS không cho phép cancel job đã COMPLETE → bỏ qua thay đổi job_status khi destroy
+  lifecycle {
+    ignore_changes = [job_status]
+  }
 }
+
