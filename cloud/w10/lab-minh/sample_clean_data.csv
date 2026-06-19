@@ -1,0 +1,5 @@
+EmployeeID,Name,Department,Role,OfficeLocation
+EMP001,David Harris,Engineering,Software Engineer,Seattle
+EMP002,Sarah Connor,Operations,SRE,Boston
+EMP003,John Miller,Marketing,Manager,Chicago
+EMP004,Emily Davis,Human Resources,Recruiter,New York
