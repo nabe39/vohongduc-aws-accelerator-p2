@@ -42,3 +42,7 @@ alertmanager-local.yaml
 **/email-secret.yaml
 **/alertmanager-config.yaml
 *.secret.yaml
+
+# Cosign keys
+*.key
+**/signing/*.key
